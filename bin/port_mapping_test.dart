@@ -29,7 +29,7 @@ Future<void> serveHelperPage(InternetAddress address, int port) async {
     print('Helper server listening at http://127.0.0.1:$port/');
     await server.forEach((HttpRequest request) {
       request.response.headers.contentType = ContentType.html;
-      request.response.write(r'''
+      request.response.write('''
       <html>
       <head>
         <style>
@@ -38,7 +38,7 @@ Future<void> serveHelperPage(InternetAddress address, int port) async {
         </style>
       </head>
       <body>
-        <textarea id="servers" cols="80" rows="10"></textarea>
+        <textarea id="servers" cols="80" rows="10">${servers.map((s) => buildAddress(s.$1, s.$2, s.$3)).join("\n")}</textarea>
         <button onclick="startTest();">Test</button>
         <div id="log" style="width: 1000px; height: 600px"></div>
         <script>
@@ -48,16 +48,16 @@ Future<void> serveHelperPage(InternetAddress address, int port) async {
           const log = document.getElementById('log');
 
           log.innerHTML = '';
-          for (const server of servers.split('\n').map((s) => s.trim())) {
+          for (const server of servers.split('\\n').map((s) => s.trim())) {
             if (server.startsWith('http')) {
                 try {
                   const response = await fetch(server);
                   if (!response.ok) {
-                    throw new Error(`Response status: ${response.status}`);
+                    throw new Error(`Response status: \${response.status}`);
                   }
-                  log.innerHTML += `<p class="good"><code>${server}</code>: ${await response.text()}</p>`;
+                  log.innerHTML += `<p class="good"><code>\${server}</code>: \${await response.text()}</p>`;
                 } catch (error) {
-                  log.innerHTML += `<p class="bad"><code>${server}</code>: ${error}</p>`;
+                  log.innerHTML += `<p class="bad"><code>\${server}</code>: \${error}</p>`;
                 }
             } else if (server.startsWith('ws')) {
               await new Promise((resolve, reject) => {
@@ -66,7 +66,7 @@ Future<void> serveHelperPage(InternetAddress address, int port) async {
 
                   ws.onopen = () => {
                     ws.onmessage = (event) => {
-                      log.innerHTML += `<p class="good"><code>${server}</code>: ${event.data}</p>`;
+                      log.innerHTML += `<p class="good"><code>\${server}</code>: \${event.data}</p>`;
                       ws.close();
                       resolve();
                     };
@@ -77,11 +77,11 @@ Future<void> serveHelperPage(InternetAddress address, int port) async {
                   };
 
                   ws.onerror = (error) => {
-                    log.innerHTML += `<p class="bad"><code>${server}</code>: ${error}</p>`;
+                    log.innerHTML += `<p class="bad"><code>\${server}</code>: \${error}</p>`;
                     resolve();
                   };
                 } catch (e) {
-                  log.innerHTML += `<p class="bad"><code>${server}</code>: ${e}</p>`;
+                  log.innerHTML += `<p class="bad"><code>\${server}</code>: \${e}</p>`;
                 }
               });
             }
@@ -106,11 +106,11 @@ Future<void> serve(ServerConfig config) async {
 Future<void> serveHttp(InternetAddress address, int port) async {
   try {
     var server = await HttpServer.bind(address, port);
-    printAddress('http', address, port);
+    print(buildAddress(ServerType.http, address, port));
     await server.forEach((HttpRequest request) {
       request.response.headers.add("Access-Control-Allow-Origin", "*");
       request.response.write(
-        'A HTTP request on port $port of ${address.address}',
+        'Successful HTTP response from port $port of ${address.address}',
       );
       request.response.close();
     });
@@ -122,30 +122,30 @@ Future<void> serveHttp(InternetAddress address, int port) async {
 Future<void> serveWs(InternetAddress address, int port) async {
   try {
     var server = await HttpServer.bind(address, port);
-    printAddress('ws', address, port);
+    print(buildAddress(ServerType.ws, address, port));
     await server
         .where(WebSocketTransformer.isUpgradeRequest)
         .map(WebSocketTransformer.upgrade)
         .forEach((Future<WebSocket> futureSocket) async {
-          var socket = await futureSocket;
-          socket.add(
-            'A WebSocket connection on port $port of ${address.address}',
-          );
-        });
+      var socket = await futureSocket;
+      socket.add(
+        'Successful WebSocket response from port $port of ${address.address}',
+      );
+    });
   } catch (e) {
     print('Failed to bind WS $address:$port: $e');
   }
 }
 
-void printAddress(String protocol, InternetAddress address, int port) {
-  var accessibleAddress =
-      (address == InternetAddress.anyIPv4)
-          ? InternetAddress.loopbackIPv4
-          : address == InternetAddress.anyIPv6
+String buildAddress(ServerType type, InternetAddress address, int port) {
+  var protocol = type == ServerType.http ? 'http' : 'ws';
+  var accessibleAddress = (address == InternetAddress.anyIPv4)
+      ? InternetAddress.loopbackIPv4
+      : address == InternetAddress.anyIPv6
           ? InternetAddress.loopbackIPv6
           : address;
 
   var addressPart = accessibleAddress.address;
   if (addressPart == "::1") addressPart = "[::1]";
-  print('$protocol://$addressPart:$port/');
+  return '$protocol://$addressPart:$port/';
 }
