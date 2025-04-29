@@ -8,12 +8,12 @@ var port = 8000;
 var servers = [
   (ServerType.http, InternetAddress.loopbackIPv4, port++),
   (ServerType.http, InternetAddress.anyIPv4, port++),
-  (ServerType.http, InternetAddress.loopbackIPv6, port++),
-  (ServerType.http, InternetAddress.anyIPv6, port++),
+  // (ServerType.http, InternetAddress.loopbackIPv6, port++),
+  // (ServerType.http, InternetAddress.anyIPv6, port++),
   (ServerType.ws, InternetAddress.loopbackIPv4, port++),
   (ServerType.ws, InternetAddress.anyIPv4, port++),
-  (ServerType.ws, InternetAddress.loopbackIPv6, port++),
-  (ServerType.ws, InternetAddress.anyIPv6, port++),
+  // (ServerType.ws, InternetAddress.loopbackIPv6, port++),
+  // (ServerType.ws, InternetAddress.anyIPv6, port++),
 ];
 
 Future<void> main(List<String> arguments) async {
