@@ -123,14 +123,19 @@ Future<void> serveWs(InternetAddress address, int port) async {
   try {
     var server = await HttpServer.bind(address, port);
     print(buildAddress(ServerType.ws, address, port));
-    await server
-        .where(WebSocketTransformer.isUpgradeRequest)
-        .map(WebSocketTransformer.upgrade)
-        .forEach((Future<WebSocket> futureSocket) async {
-      var socket = await futureSocket;
-      socket.add(
-        'Successful WebSocket response from port $port of ${address.address}',
-      );
+    await server.forEach((request) async {
+      if (WebSocketTransformer.isUpgradeRequest(request)) {
+        var socket = await WebSocketTransformer.upgrade(request);
+        socket.add(
+          'Successful WebSocket response from port $port of ${address.address}',
+        );
+      } else {
+        request.response.headers.add("Access-Control-Allow-Origin", "*");
+        request.response.write(
+          'Successful HTTP response from port $port of ${address.address}',
+        );
+        request.response.close();
+      }
     });
   } catch (e) {
     print('Failed to bind WS $address:$port: $e');
